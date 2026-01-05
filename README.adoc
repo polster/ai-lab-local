@@ -1,0 +1,51 @@
+= AI Lab Local
+:toc:
+
+== Introduction
+
+=== What's this?
+
+This repository contains scripts and configurations to quickly ramp-up a local AI lab based on Docker compose and the following building blocks:
+
+* Open WebUI - a feature-rich, configurable, extendable, and easy to use AI platform
+* LiteLLM - a lightweight LLM proxy for managing internal and external LLM providers
+* Ollama - Local LLM server
+* PostgreSQL - database for storing application data
+
+=== Prerequisites
+
+* Docker Desktop, Podman Desktop, or any other compatible container runtime
+* Docker compose support
+* Optional: direnv
+
+== Get started
+
+=== Initial setup
+
+* Clone or fork this repository
+* Copy the `.envrc` file from `sample/` to the root directory
+** Edit the .envrc file as needed (it is excluded from git)
+** If `direnv` is installed, run `direnv allow` to activate the environment (otherwise source the file directly)
+* Start the services:
+[source,bash]
+----
+docker compose up -d
+----
+* Access available UIs:
+** Open WebUI: http://localhost:33371
+** LiteLLM: http://localhost:33372
+
+=== macOS
+
+* For full GPU support, install `Ollama` natively if a local LLM server is needed
+** Using Homebrew to install and run it as background service (will start automatically at login):
+[source,bash]
+----
+brew install ollama
+brew services start ollama
+----
+** Pull first model corresponding to the LiteLLM configuration (link:./config/litellm/config.yaml[config.yaml]):
+[source,bash]
+----
+ollama pull deepseek-r1
+----

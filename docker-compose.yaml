@@ -1,0 +1,80 @@
+services:
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:33371:8080'
+    environment:
+      DATABASE_URL: postgresql://aistack:${POSTGRES_PASSWORD}@postgresql:5432/openwebui_db
+      WEBUI_NAME: ${WEBUI_NAME:-AI Lab}
+      OPENAI_API_KEY: ${LITELLM_MASTER_KEY}
+      OPENAI_API_BASE_URL: http://litellm:4000/v1
+    volumes:
+      - open-webui:/app/backend/data
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: unless-stopped
+    command:
+      - '--config=/litellm_config.yaml'
+      - '--detailed_debug'
+    ports:
+      - '127.0.0.1:33372:4000'
+    environment:
+      DATABASE_URL: postgresql://aistack:${POSTGRES_PASSWORD}@postgresql:5432/litellm_db
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY}
+      UI_USERNAME: ${LITELLM_UI_USERNAME:-admin}
+      UI_PASSWORD: ${LITELLM_UI_PASSWORD}
+      OPENAI_API_KEY: ${LITELLM_OPENAI_API_KEY}
+      OLLAMA_API_BASE: ${LITELLM_OLLAMA_API_BASE}
+      STORE_MODEL_IN_DB: "True"
+    volumes:
+      - ./config/litellm/config.yaml:/litellm_config.yaml
+  
+  ollama:
+    image: docker.io/ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:33373:11434'
+    volumes:
+      - ollama:/root/.ollama
+    profiles: ["ollama-cpu"]
+
+  ollama:
+    image: docker.io/ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:33373:11434'
+    volumes:
+      - ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles: ["ollama-nvidia"]
+
+  postgresql:
+    image: pgvector/pgvector:pg17
+    restart: always
+    command: -c config_file=/etc/postgresql.conf
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_USER: aistack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: aistack
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./config/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./config/postgres/postgresql.conf:/etc/postgresql.conf
+
+volumes:
+  open-webui:
+  ollama:
+  postgres:
