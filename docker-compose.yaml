@@ -27,6 +27,9 @@ services:
     command:
       - '--config=/litellm_config.yaml'
       - '--detailed_debug'
+    extra_hosts:
+      # Allow access to host machine in case Ollama is running natively
+      - "host.docker.internal:host-gateway"
     ports:
       - '127.0.0.1:33372:4000'
     environment:

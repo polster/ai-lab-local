@@ -35,17 +35,33 @@ docker compose up -d
 ** Open WebUI: http://localhost:33371
 ** LiteLLM: http://localhost:33372
 
-=== macOS
+=== Local model serving on Linux
+
+* GPU support by containerized `Ollama` is supported on Linux base hosts with an Nvidia GPU
+* Make sure the link:https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html[Nvidia Container Toolkit] is installed
+* Start the services:
+[source,bash]
+----
+docker compose up -d --profile ollama-nvidia
+----
+
+=== Local model serving on macOS
 
 * For full GPU support, install `Ollama` natively if a local LLM server is needed
-** Using Homebrew to install and run it as background service (will start automatically at login):
+* Using Homebrew to install and run it as background service (will start automatically at login):
 [source,bash]
 ----
 brew install ollama
 brew services start ollama
 ----
-** Pull first model corresponding to the LiteLLM configuration (link:./config/litellm/config.yaml[config.yaml]):
+* Pull first model corresponding to the LiteLLM configuration (link:./config/litellm/config.yaml[config.yaml]):
 [source,bash]
 ----
 ollama pull deepseek-r1
+----
+* Make sure to update the LiteLLM configuration in your link:./.envrc[.envrc] file:
+[source,bash]
+----
+# Dockerized LiteLLM gateway to call Ollama service locally
+LITELLM_OLLAMA_API_BASE=http://host.docker.internal:11434
 ----
