@@ -16,6 +16,7 @@ This repository contains scripts and configurations to quickly ramp-up a local A
 
 * Docker Desktop, Podman Desktop, or any other compatible container runtime
 * Docker compose support
+* Make
 * Optional: direnv
 
 == Get started
