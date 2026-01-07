@@ -45,6 +45,11 @@ docker compose up -d
 ----
 docker compose up -d --profile ollama-nvidia
 ----
+* Alternatively, there is also a CPU-only variant available:
+[source,bash]
+----
+docker compose up -d --profile ollama-cpu
+----
 
 === Local model serving on macOS
 

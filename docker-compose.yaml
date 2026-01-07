@@ -8,6 +8,10 @@ x-ollama: &ollama-base
 
 services:
 
+#############
+# Basic stack
+#############
+
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     restart: unless-stopped
