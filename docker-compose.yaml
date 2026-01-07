@@ -2,7 +2,7 @@ x-ollama: &ollama-base
   image: docker.io/ollama/ollama:latest
   restart: unless-stopped
   ports:
-    - '127.0.0.1:33373:11434'
+    - ':33373:11434'
   volumes:
     - ollama:/root/.ollama
 
@@ -16,7 +16,7 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     restart: unless-stopped
     ports:
-      - '127.0.0.1:33371:8080'
+      - '33371:8080'
     environment:
       DATABASE_URL: postgresql://aistack:${POSTGRES_PASSWORD}@postgresql:5432/openwebui_db
       WEBUI_NAME: ${WEBUI_NAME:-AI Lab}
@@ -35,7 +35,7 @@ services:
       # Allow access to host machine in case Ollama is running natively
       - "host.docker.internal:host-gateway"
     ports:
-      - '127.0.0.1:33372:4000'
+      - '33372:4000'
     environment:
       DATABASE_URL: postgresql://aistack:${POSTGRES_PASSWORD}@postgresql:5432/litellm_db
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
@@ -66,6 +66,8 @@ services:
   postgresql:
     image: pgvector/pgvector:pg17
     restart: always
+    ports:
+      - "5432:5432"
     command: -c config_file=/etc/postgresql.conf
     security_opt:
       - no-new-privileges:true
@@ -79,7 +81,78 @@ services:
       - ./config/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
       - ./config/postgres/postgresql.conf:/etc/postgresql.conf
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    ports:
+      - "33374:9000"
+      - "33375:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+########
+# MLFlow
+########
+
+  create-bucket:
+    image: minio/mc:latest
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set myminio "http://minio:9000" \
+          "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing "myminio/mlflow"
+    restart: "no"
+    profiles: ["mlflow"]
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # S3/MinIO settings
+      MLFLOW_S3_ENDPOINT_URL: "http://minio:9000"
+      MLFLOW_ARTIFACTS_DESTINATION: "s3://mlflow/"
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: "eu-central-1"
+      MLFLOW_S3_IGNORE_TLS: "true"
+
+    command:
+      - /bin/bash
+      - -c
+      - |
+        pip install --no-cache-dir psycopg2-binary boto3
+        mlflow server \
+          --backend-store-uri "postgresql://aistack:${POSTGRES_PASSWORD}@postgresql:5432/aistack" \
+          --artifacts-destination "s3://mlflow/" \
+          --serve-artifacts \
+          --host "0.0.0.0" \
+          --port "5000"
+    ports:
+      - "33376:5000"
+
+#########
+# Volumes
+#########
+
 volumes:
   open-webui:
   ollama:
   postgres:
+  minio-data:

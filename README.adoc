@@ -43,12 +43,12 @@ docker compose up -d
 * Start the services:
 [source,bash]
 ----
-docker compose up -d --profile ollama-nvidia
+docker compose --profile ollama-nvidia up -d
 ----
 * Alternatively, there is also a CPU-only variant available:
 [source,bash]
 ----
-docker compose up -d --profile ollama-cpu
+docker compose --profile ollama-cpu up -d
 ----
 
 === Local model serving on macOS
@@ -71,3 +71,13 @@ ollama pull deepseek-r1
 # Dockerized LiteLLM gateway to call Ollama service locally
 LITELLM_OLLAMA_API_BASE=http://host.docker.internal:11434
 ----
+
+=== MLflow
+
+* To use MLflow for local tracking/experiments, start the services with the `mlflow` profile:
+[source,bash]
+----
+docker compose --profile mlflow up -d
+----
+* Access MLflow UI: http://localhost:33376/login
+* Access minio UI: http://localhost:33375
